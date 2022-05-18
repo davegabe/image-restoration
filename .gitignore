@@ -1,0 +1,7 @@
+__pycache__/
+data/__pycache__/
+autoencoder/__pycache__/
+
+Dataset/
+Results/
+Model/
