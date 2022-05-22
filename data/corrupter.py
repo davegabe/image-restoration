@@ -41,8 +41,8 @@ def draw(img):
     
     x = img.shape[0]
     y = img.shape[1]
-    xlimit = x/3
-    ylimit = y/3
+    xlimit = x/3.5
+    ylimit = y/3.5
     
     for i in range(np.random.randint(3,6)):            
         
