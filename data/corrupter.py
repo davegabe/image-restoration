@@ -33,8 +33,6 @@ def corrupt(training_path, evaluation_path, training_corrupted_path, evaluation_
     
         cv.imwrite(final_path, img)
 
-    print(training_path, evaluation_path, training_corrupted_path, evaluation_corrupted_path)
-    pass
 
 
 def draw(img):
