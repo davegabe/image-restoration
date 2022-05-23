@@ -12,21 +12,21 @@ def corrupt(training_path, evaluation_path, training_corrupted_path, evaluation_
         training_corrupted_path: The path to save the corrupted training data.
         evaluation_corrupted_path: The path to save the corrupted evaluation data.
     """
-
-    for img in os.listdir(training_path):
+    
+    for file_name in os.listdir(training_path):
+        img = cv.imread(training_path + file_name)
         draw(img)
 
-        file_name = os.path.basename(img)
         new_name = os.path.splitext(file_name)[0]+"_corrupted"+os.path.splitext(file_name)[1]
 
         final_path = os.path.join(training_corrupted_path, new_name)
     
         cv.imwrite(final_path, img)
 
-    for img in os.listdir(evaluation_path):
+    for file_name in os.listdir(evaluation_path):
+        img = cv.imread(evaluation_path + file_name)
         draw(img)
 
-        file_name = os.path.basename(img)
         new_name = os.path.splitext(file_name)[0]+"_corrupted"+os.path.splitext(file_name)[1]
 
         final_path = os.path.join(evaluation_corrupted_path, new_name)
