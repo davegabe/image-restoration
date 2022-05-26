@@ -1,14 +1,13 @@
-from bing_image_downloader import downloader
+from icrawler.builtin import GoogleImageCrawler
 
-#https://pypi.org/project/bing-image-downloader/
-
-search_queries = [
-    "yoyoyo"
-]
-
-def download_images(queries):
-    for query in queries:
-        downloader.download(query, limit=5, output_dir = "dataset", adult_filter_off=True, force_replace=False, timeout=60, verbose=True)
-        print()
-
-download_images(search_queries)
+google_crawler = GoogleImageCrawler(
+    feeder_threads=1,
+    parser_threads=2,
+    downloader_threads=4,
+    storage={'root_dir': 'images'})
+filters = dict(
+    # color='orange',
+    # license='commercial,modify',
+    # date=((2017, 1, 1), (2017, 11, 30))
+    )
+google_crawler.crawl(keyword='dog imagesize:900x900', filters=filters, max_num=5, file_idx_offset=0)
