@@ -37,5 +37,3 @@ def download(training_path, evaluation_path, width, height, keyword, number):
     
     print(training_path, evaluation_path)
     pass
-
-download("/Users/beatrice/Desktop/proj/train", "/Users/beatrice/Desktop/proj/eval", 1920, 1080, "zhongli genshin impact", 20)
