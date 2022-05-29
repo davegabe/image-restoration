@@ -1,12 +1,14 @@
-from autoencoder.model import AutoEncoder
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor
-import os
-import matplotlib.pyplot as plt
-import numpy as np
+
+from autoencoder.model import AutoEncoder
 
 
 def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32):
@@ -53,7 +55,7 @@ def load_model(device: torch.device, model_path: str):
     """
     model = AutoEncoder(3, 8, 1).to(device)
     epoch = 1
-    if os.path.exists(model_path):
+    if os.path.exists(model_path) and os.listdir(model_path):
         models = os.listdir(model_path)
         model.load_state_dict(torch.load(os.path.join(model_path, models[-1])))
         epoch = int(models[-1].split(".")[0].split("_")[-1]) + 1
