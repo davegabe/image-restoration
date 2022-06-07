@@ -1,7 +1,9 @@
 from icrawler.builtin import GoogleImageCrawler
 import os
+from PIL import Image
 
-def download(training_path, evaluation_path, width, height, keyword, number):
+
+def download(training_path, evaluation_path, width, height, keyword, quantity):
     """
     Downloads training data from the internet and saves it to the specified destination, separated into training and evaluation data.
 
@@ -10,20 +12,82 @@ def download(training_path, evaluation_path, width, height, keyword, number):
         evaluation_path: The path to save the evaluation data.
     """
 
-    keyword = keyword+" imagesize:" + str(width) + "x" + str(height)
-
     google_crawler = GoogleImageCrawler(
-        feeder_threads=1,
-        parser_threads=2,
-        downloader_threads=4,
-        storage={'root_dir': evaluation_path})
+        storage={'root_dir': training_path}
+    )
 
-    google_crawler.crawl(keyword=keyword, max_num=number, file_idx_offset=0)
+    filters = {'type': "photo"}
+    google_crawler.crawl(keyword=keyword, filters=filters, max_num=quantity,
+                         min_size=(width, height), file_idx_offset='auto')
 
-    files = os.listdir(evaluation_path)
+    adjustAndCrop(training_path, width, height)
+    splitData(training_path, evaluation_path)
 
-    for i in range(int(len(files)*0.8)):  # move 80% of images to training path
-        old_file_path = os.path.join(evaluation_path, files[i])
-        new_file_path = os.path.join(training_path, files[i])
-        if not (files[i].startswith('.')): # ignore system files
+
+def adjustAndCrop(path, width, height):
+    """
+    Adjusts and crops images to the specified size.
+
+    Args:
+        path: The path to the images.
+        width: The width of desired images. If width=0, it's the smallest possible size.
+        height: The height of desired images. If height=0, it's the smallest possible size.
+    """
+    files = os.listdir(path)
+
+    # if width or height is 0, it's the smallest possible size
+    if width == 0 or height == 0:
+        tmp_width = 0
+        tmp_height = 0
+        for file in files:
+            if not (file.startswith('.')):  # ignore system files
+                image = Image.open(os.path.join(path, file))
+                if tmp_width == 0:
+                    tmp_width = image.width
+                else:
+                    if image.width < tmp_width:
+                        tmp_width = image.width
+                if tmp_height == 0:
+                    tmp_height = image.height
+                else:
+                    if image.height < tmp_height:
+                        tmp_height = image.height
+                image.close()
+        if width == 0:
+            width = tmp_width
+        if height == 0:
+            height = tmp_height
+
+    # random crop the images to the specified size using the PIL library
+    for file in files:
+        img = Image.open(os.path.join(path, file))
+
+        # resize the image as the minimum size is (width, height)
+        if img.width > width and img.height > height:
+            if img.size[0] > img.size[1]:
+                new_img = img.resize(
+                    (int(img.size[0] * height / img.size[1]), height), Image.ANTIALIAS)
+            else:
+                new_img = img.resize(
+                    (width, int(img.size[1] * width / img.size[0])), Image.ANTIALIAS)
+
+            new_img = img.crop((0, 0, width, height)) # crop the image to the specified size
+            img.close()
+            new_img.save(os.path.join(path, file)) # overwrite the old image
+        else:
+            # if the image is smaller than the specified size, remove it
+            img.close()
+            os.remove(os.path.join(path, file))
+
+
+def splitData(training_path, evaluation_path):
+    """
+    Splits the downloaded data into training and evaluation data.
+    """
+    files = os.listdir(training_path)
+
+    for i in range(int(len(files)*0.2)):  # move 20% of images to evaluation path
+        old_file_path = os.path.join(training_path, files[i])
+        new_file_path = os.path.join(evaluation_path, files[i])
+        if not (files[i].startswith('.')):  # ignore system files
             os.rename(old_file_path, new_file_path)
