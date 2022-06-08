@@ -1,15 +1,12 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, Subset
-from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
+from tqdm import tqdm
 
-from autoencoder.model import AutoEncoder
-
+from autoencoder.model import AutoEncoder, AutoEncoderDataset, load_model, save_model
 
 def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32):
     """
@@ -33,36 +30,14 @@ def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
 
     # load the training data images
-    train_data = ImageFolder(root=training_path, transform=ToTensor())
-    original_data = Subset(train_data, range(0, int(len(train_data)/2)))
-    corrupted_data = Subset(train_data, range(int(len(train_data)/2), len(train_data)))
+    train_data = AutoEncoderDataset(training_path, ToTensor())
+    train_data_loader = DataLoader(train_data, batch_size=batch_size)
 
-    original_dataloader = DataLoader(original_data, batch_size=batch_size)
-    corrupted_dataloader = DataLoader(corrupted_data, batch_size=batch_size)
-    
     # train the model
-    train_model(model, original_dataloader, corrupted_dataloader, criterion, optimizer,
+    train_model(model, train_data_loader, criterion, optimizer,
                 epoch, epochs_save, model_path, device)
 
-
-def load_model(device: torch.device, model_path: str):
-    """
-    Load the model if it exists, otherwise create a new one.
-
-    Args:
-        device: The device to run the model on.
-        model_path: The path to the model.
-    """
-    model = AutoEncoder(3, 8, 1).to(device)
-    epoch = 1
-    if os.path.exists(model_path) and os.listdir(model_path):
-        models = os.listdir(model_path)
-        model.load_state_dict(torch.load(os.path.join(model_path, models[-1])))
-        epoch = int(models[-1].split(".")[0].split("_")[-1]) + 1
-    return model, epoch
-
-
-def train_model(model: AutoEncoder, original_dataloader: DataLoader, corrupted_dataloader: DataLoader, criterion: nn.MSELoss, optimizer: torch.optim.AdamW, epoch: int, epochs_save: int, model_path: str, device: torch.device):
+def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn.MSELoss, optimizer: torch.optim.AdamW, epoch: int, epochs_save: int, model_path: str, device: torch.device):
     """
     Train the model.
 
@@ -79,42 +54,40 @@ def train_model(model: AutoEncoder, original_dataloader: DataLoader, corrupted_d
     """
     try:
         while True:
-            batches = len(original_dataloader)
-            for i in range(batches):
-                # get the next batch
-                images, corrupted_images = next(iter(original_dataloader)), next(iter(corrupted_dataloader))
-
+            for i, (original_image, corrupted_image) in enumerate(tqdm(train_data_loader, desc=f"Epoch {epoch}")):
                 # send the images to the device
-                images : torch.Tensor = images[i].to(device)
-                corrupted_images : torch.Tensor = corrupted_images[i].to(device)
+                original_image = original_image.to(device)
+                corrupted_image = corrupted_image.to(device)
 
-                # forward pass
-                output = model.forward(corrupted_images)
-
-                # calculate the loss
-                loss = criterion(output, images)
-
-                # backward pass
+                # zero the parameter gradients
                 optimizer.zero_grad()
+
+                # forward + backward + optimize
+                output = model.forward(corrupted_image)
+                loss = criterion(output, original_image)
                 loss.backward()
                 optimizer.step()
 
-                # print the loss
-                print(f"Epoch: {epoch} | Batch: {i+1}/{batches} | Loss: {loss.item():.4f}")
+            # print the loss
+            print(f"[DONE] Epoch: {epoch} | Loss: {loss.item():.4f}")
 
-                # print output images
-                if(epoch % epochs_save == 0):
-                    for j in range(output.shape[0]):
-                        plt.imshow(np.transpose(output[j].cpu().detach().numpy(), (1, 2, 0)))
-                        plt.show()
+            # # print output images
+            # if(epoch % epochs_save == 0):
+            #     for j in range(output.shape[0]):
+            #         print(f"#### {j} Image ####")
+            #         print(f"Min: {output[j].cpu().min()}")
+            #         print(f"Max: {output[j].cpu().max()}")
+            #         plt.imshow(np.transpose(
+            #             output[j].cpu().detach().numpy(), (1, 2, 0)))
+            #         plt.show()
 
             # save the model every epochs_save times
             if(epoch % epochs_save == 0):
-                os.makedirs(model_path, exist_ok=True)
-                model_save = os.path.join(model_path, f"model_{epoch}.pth")
-                torch.save(model.state_dict(), model_save)
-                print(f"Epoch: {epoch} | Saved model to {model_save}!")
+                saved_model = save_model(model, epoch, model_path)
+                print(
+                    f"[SAVED MODEL] Epoch: {epoch} | Saved model to {saved_model}!")
             epoch += 1
 
     except KeyboardInterrupt:
-        print('Training interrupted!')
+        torch.cuda.empty_cache() # clear the cache
+        print("[STOPPED] Training interrupted!")
