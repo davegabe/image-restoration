@@ -6,7 +6,9 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
-from autoencoder.model import AutoEncoder, AutoEncoderDataset, load_model, save_model
+from autoencoder.model import (AutoEncoder, AutoEncoderDataset, load_model,
+                               save_model)
+
 
 def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32):
     """
@@ -53,8 +55,13 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
         device: The device to run the model on.
     """
     try:
+        lastLoss = 1
         while True:
-            for i, (original_image, corrupted_image) in enumerate(tqdm(train_data_loader, desc=f"Epoch {epoch}")):
+            if lastLoss != 1:
+                description = f"Epoch {epoch} | Loss {lastLoss}"
+            else:
+                description = f"Epoch {epoch}"
+            for i, (original_image, corrupted_image) in enumerate(tqdm(train_data_loader, desc=description)):
                 # send the images to the device
                 original_image = original_image.to(device)
                 corrupted_image = corrupted_image.to(device)
@@ -65,11 +72,15 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
                 # forward + backward + optimize
                 output = model.forward(corrupted_image)
                 loss = criterion(output, original_image)
+                lastLoss = loss.detach().cpu()
                 loss.backward()
                 optimizer.step()
 
-            # print the loss
-            print(f"[DONE] Epoch: {epoch} | Loss: {loss.item():.4f}")
+                del original_image
+                del corrupted_image
+                del output
+                del loss
+                torch.cuda.empty_cache()
 
             # # print output images
             # if(epoch % epochs_save == 0):
@@ -84,10 +95,21 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
             # save the model every epochs_save times
             if(epoch % epochs_save == 0):
                 saved_model = save_model(model, epoch, model_path)
-                print(
-                    f"[SAVED MODEL] Epoch: {epoch} | Saved model to {saved_model}!")
+                print(f"[SAVED MODEL] Epoch: {epoch} | Saved to {saved_model}!")
             epoch += 1
 
     except KeyboardInterrupt:
+        del original_image
+        del corrupted_image
+        del output
+        del loss
         torch.cuda.empty_cache() # clear the cache
         print("[STOPPED] Training interrupted!")
+    
+    except Exception as e:
+        del original_image
+        del corrupted_image
+        del output
+        del loss
+        torch.cuda.empty_cache() # clear the cache
+        print(f"[ERROR] {e}")

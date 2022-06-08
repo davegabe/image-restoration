@@ -1,8 +1,10 @@
-import torch
-from torch import nn
-from PIL import Image
-from torchvision.transforms import ToTensor
 import os
+
+import torch
+from PIL import Image
+from torch import nn
+from torchvision.transforms import ToTensor
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
@@ -100,7 +102,7 @@ def load_model(device: torch.device, model_path: str):
         device: The device to run the model on.
         model_path: The path to the model.
     """
-    model = AutoEncoder(3, 8, 1).to(device)
+    model = AutoEncoder(3, 128, 3).to(device)
     epoch = 1
     if os.path.exists(model_path) and os.listdir(model_path):
         models = os.listdir(model_path)  # Get the list of models
