@@ -43,36 +43,56 @@ def test(model_path, evaluation_path, results_path, batch_size: int = 32):
             original_images = original_images.to(device)
             corrupted_images = corrupted_images.to(device)
 
-            # forward pass
+            # copy images to output later
+            goodshape_original_images = original_images.clone()
+            goodshape_corrupted_images = corrupted_images.clone()
+
+            # permute and reshape images
+            original_images = torch.permute(original_images, (2, 3, 0, 1)).view(512 * 512, 4, 3)
+            corrupted_images = torch.permute(corrupted_images, (2, 3, 0, 1)).view(512 * 512, 4, 3)
+
+            # forward pass, permute and reshape
             output = autoencoder.forward(corrupted_images)
+            goodshape_output = torch.permute(output, (1, 2, 0)).view(4, 3, 512, 512)
 
             # print output images
-            for j in range(output.shape[0]):
+            for j in range(goodshape_output.shape[0]):
                 fig = plt.figure(figsize=(50,25))
                 
                 ax = fig.add_subplot(1, 3, 1)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-                imgplot = plt.imshow(np.transpose(original_images[j].cpu().detach().numpy(), (1, 2, 0)))
+                imgplot = plt.imshow(np.transpose(goodshape_original_images[j].cpu().detach().numpy(), (1, 2, 0)))
                 ax.set_title('Original', fontsize=20)
 
                 ax = fig.add_subplot(1, 3, 2)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-                imgplot = plt.imshow(np.transpose(corrupted_images[j].cpu().detach().numpy(), (1, 2, 0)))
+                imgplot = plt.imshow(np.transpose(goodshape_corrupted_images[j].cpu().detach().numpy(), (1, 2, 0)))
                 ax.set_title('Before', fontsize=20)
 
                 ax = fig.add_subplot(1, 3, 3)
                 ax.get_xaxis().set_visible(False)
                 ax.get_yaxis().set_visible(False)
-                imgplot = plt.imshow(np.transpose(output[j].cpu().detach().numpy(), (1, 2, 0)))
+                imgplot = plt.imshow(np.transpose(goodshape_output[j].cpu().detach().numpy(), (1, 2, 0)))
                 ax.set_title('After', fontsize=20)
 
+                name = str(i) + "_" + str(j)+".jpg"
 
+                # os.makedirs(results_path, exist_ok=True)
+                plt.savefig(results_path +  name)
+                plt.draw()
+                plt.clf()
+                plt.close("all")
+
+
+                # plt.close(fig)
                 # save_image(np.transpose(output[j].cpu().detach().numpy(), (1, 2, 0)), str(i) + '.png')
                 # plt.imshow(np.transpose(output[j].cpu().detach().numpy(), (1, 2, 0)))
-                # plt.show()
 
+                
+                # plt.show()
+       
             # reconstruction error
             loss = criterion(output, original_images)
 
@@ -82,6 +102,9 @@ def test(model_path, evaluation_path, results_path, batch_size: int = 32):
             del corrupted_images
             del output
             del loss
+            del goodshape_original_images 
+            del goodshape_corrupted_images
+            del goodshape_output
             torch.cuda.empty_cache() # empty the cache
             
     

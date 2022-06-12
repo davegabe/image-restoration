@@ -1,19 +1,45 @@
 import os
 
+import numpy as np
 import torch
 from PIL import Image
 from torch import nn
 from torchvision.transforms import ToTensor
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+class PrintLayer(nn.Module):
+    def __init__(self):
+        super(PrintLayer, self).__init__()
+    
+    def forward(self, x):
+        # Do your print / debug stuff here
+        print(x)
+        return x
 
+class Reshape(nn.Module):
+    def __init__(self, *args):
+        super(Reshape, self).__init__()
+        self.shape = args
+
+    def forward(self, x):
+        return x.view(self.shape)
 
 class AutoEncoder(nn.Module):
     def __init__(self, input_size=3, hidden_size=32, layers=3):
         super().__init__()
 
+        # Number of nodes for internal layers
+        nodes = np.linspace(1, 10, num=10)
+
         # Encoder (convolutional layers)
         sequential = nn.Sequential()
+
+        # First layer add Flatten() to convert the image to a vector
+        sequential.add_module("flatten", nn.Flatten())
+
+        sequential.add_module("print", PrintLayer())
+        
+        # Add the convolutional layers
         for i in range(layers):
             sequential.add_module(
                 f"conv_{i}",
@@ -22,20 +48,23 @@ class AutoEncoder(nn.Module):
                     out_channels=hidden_size,
                     kernel_size=3,
                     stride=1,
-                    padding=1
+                    padding=1,
                 )
             )
             sequential.add_module(
-                f"relu_{i}",
-                nn.ReLU()
+                f"sigmoid_{i}",
+                nn.Sigmoid()
             )
         self.encoder = sequential
 
+
         # Decoder (transposed convolutional layers)
         sequential = nn.Sequential()
+
+        # Add the transposed convolutional layers
         for i in range(layers):
             sequential.add_module(
-                f"tconv_{i}",
+                f"tsigmoid_{i}",
                 nn.ConvTranspose2d(
                     in_channels=hidden_size,
                     out_channels=input_size if i == layers - 1 else hidden_size,
@@ -46,8 +75,14 @@ class AutoEncoder(nn.Module):
             )
             sequential.add_module(
                 f"trelu_{i}",
-                nn.ReLU()
+                nn.Sigmoid()
             )
+        # Add the last layer to convert the vector to an image
+        sequential.add_module(
+            "reshape",
+            Reshape(-1, input_size, input_size)
+        )
+        sequential.add_module("print", PrintLayer())
         self.decoder = sequential
 
     def forward(self, x):
@@ -102,7 +137,7 @@ def load_model(device: torch.device, model_path: str):
         device: The device to run the model on.
         model_path: The path to the model.
     """
-    model = AutoEncoder(3, 128, 3).to(device)
+    model = AutoEncoder(512*512*3, 32, 3).to(device)
     epoch = 1
     if os.path.exists(model_path) and os.listdir(model_path):
         models = os.listdir(model_path)  # Get the list of models

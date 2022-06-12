@@ -3,6 +3,8 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+# from torchsummary import summary
+from torchvision import models
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
@@ -18,12 +20,14 @@ def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size
         training_path: The path to the training data.
         model_path: The path to save the trained model.
     """
-
+        
     # select the device to run the model on
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # load the model if it exist, otherwise create a new one
     model, epoch = load_model(device, model_path)
+
+    # summary(model, (3, 512, 512))
 
     # define the loss function
     criterion = nn.MSELoss()
@@ -61,15 +65,19 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
                 description = f"Epoch {epoch} | Loss {lastLoss}"
             else:
                 description = f"Epoch {epoch}"
+                
             for i, (original_image, corrupted_image) in enumerate(tqdm(train_data_loader, desc=description)):
                 # send the images to the device
-                original_image = original_image.to(device)
-                corrupted_image = corrupted_image.to(device)
-
+                original_image: torch.Tensor = original_image.to(device)
+                corrupted_image: torch.Tensor = corrupted_image.to(device)
+                
                 # zero the parameter gradients
                 optimizer.zero_grad()
-
+       
                 # forward + backward + optimize
+                original_image = torch.permute(original_image, (2, 3, 0, 1)).view(512 * 512, 4, 3)
+                corrupted_image = torch.permute(corrupted_image, (2, 3, 0, 1)).view(512 * 512, 4, 3)
+
                 output = model.forward(corrupted_image)
                 loss = criterion(output, original_image)
                 lastLoss = loss.detach().cpu()
@@ -107,9 +115,9 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
         print("[STOPPED] Training interrupted!")
     
     except Exception as e:
-        del original_image
-        del corrupted_image
-        del output
-        del loss
+        # del original_image
+        # del corrupted_image
+        # del output
+        # del loss
         torch.cuda.empty_cache() # clear the cache
         print(f"[ERROR] {e}")
