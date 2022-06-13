@@ -1,10 +1,6 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-# from torchsummary import summary
-from torchvision import models
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
@@ -12,7 +8,7 @@ from autoencoder.model import (AutoEncoder, AutoEncoderDataset, load_model,
                                save_model)
 
 
-def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32):
+def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32, width: int = 512, height: int = 512):
     """
     Train the autoencoder.
 
@@ -25,9 +21,7 @@ def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # load the model if it exist, otherwise create a new one
-    model, epoch = load_model(device, model_path)
-
-    # summary(model, (3, 512, 512))
+    model, epoch = load_model(device, model_path, width, height)
 
     # define the loss function
     criterion = nn.MSELoss()
@@ -66,39 +60,25 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
             else:
                 description = f"Epoch {epoch}"
                 
-            for i, (original_image, corrupted_image) in enumerate(tqdm(train_data_loader, desc=description)):
+            for i, (original_images, corrupted_images) in enumerate(tqdm(train_data_loader, desc=description)):
                 # send the images to the device
-                original_image: torch.Tensor = original_image.to(device)
-                corrupted_image: torch.Tensor = corrupted_image.to(device)
+                original_images: torch.Tensor = original_images.to(device)
+                corrupted_images: torch.Tensor = corrupted_images.to(device)
                 
                 # zero the parameter gradients
                 optimizer.zero_grad()
-       
-                # forward + backward + optimize
-                original_image = torch.permute(original_image, (2, 3, 0, 1)).view(512 * 512, 4, 3)
-                corrupted_image = torch.permute(corrupted_image, (2, 3, 0, 1)).view(512 * 512, 4, 3)
 
-                output = model.forward(corrupted_image)
-                loss = criterion(output, original_image)
+                output_images = model.forward(corrupted_images)
+                loss = criterion(output_images, original_images)
                 lastLoss = loss.detach().cpu()
                 loss.backward()
                 optimizer.step()
 
-                del original_image
-                del corrupted_image
-                del output
+                del original_images
+                del corrupted_images
+                del output_images
                 del loss
                 torch.cuda.empty_cache()
-
-            # # print output images
-            # if(epoch % epochs_save == 0):
-            #     for j in range(output.shape[0]):
-            #         print(f"#### {j} Image ####")
-            #         print(f"Min: {output[j].cpu().min()}")
-            #         print(f"Max: {output[j].cpu().max()}")
-            #         plt.imshow(np.transpose(
-            #             output[j].cpu().detach().numpy(), (1, 2, 0)))
-            #         plt.show()
 
             # save the model every epochs_save times
             if(epoch % epochs_save == 0):
@@ -107,17 +87,19 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
             epoch += 1
 
     except KeyboardInterrupt:
-        del original_image
-        del corrupted_image
-        del output
+        del original_images
+        del corrupted_images
+        del output_images
         del loss
         torch.cuda.empty_cache() # clear the cache
         print("[STOPPED] Training interrupted!")
+        return
     
     except Exception as e:
-        # del original_image
-        # del corrupted_image
-        # del output
+        # del original_images
+        # del corrupted_images
+        # del output_images
         # del loss
         torch.cuda.empty_cache() # clear the cache
         print(f"[ERROR] {e}")
+        return
