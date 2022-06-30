@@ -37,52 +37,68 @@ class AutoEncoder(nn.Module):
         self.encoder = nn.Sequential(
             nn.Conv2d(
                 in_channels=3,
-                out_channels=8,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1)
-            ),
-            nn.ReLU(),
-            nn.Conv2d(
-                in_channels=8,
-                out_channels=16,
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1)
-            ),
-            nn.ReLU(),
-            nn.Conv2d(
-                in_channels=16,
                 out_channels=32,
                 kernel_size=(3, 3),
                 stride=(1, 1),
                 padding=(1, 1)
             ),
             nn.ReLU(),
-            nn.Flatten(),
-            nn.Linear(in_features=32 * width * height, out_features=16),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(in_features=16, out_features=32 * width * height),
-            Reshape(-1, 32, width, height),
+            nn.MaxPool2d(2, stride=2),
             nn.Conv2d(
                 in_channels=32,
-                out_channels=16,
+                out_channels=64,
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1)
+            ),
+            nn.ReLU(),
+            # nn.MaxPool2d(2, stride=2),
+            nn.Conv2d(
+                in_channels=64,
+                out_channels=128,
                 kernel_size=(3, 3),
                 stride=(1, 1),
                 padding=(1, 1)
             ),
             nn.ReLU(),
             nn.Conv2d(
-                in_channels=16,
-                out_channels=8,
+                in_channels=128,
+                out_channels=256,
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1)
+            ),
+            nn.ReLU(),
+        )
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(256, 256, 3, stride=2, padding=1, output_padding=1),
+            nn.Conv2d(
+                in_channels=256,
+                out_channels=128,
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1)
+            ),
+            nn.ReLU(),
+            # nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1, output_padding=1),
+            nn.Conv2d(
+                in_channels=128,
+                out_channels=64,
                 kernel_size=(3, 3),
                 stride=(1, 1),
                 padding=(1, 1)
             ),
             nn.ReLU(),
             nn.Conv2d(
-                in_channels=8,
+                in_channels=64,
+                out_channels=32,
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1)
+            ),
+            nn.ReLU(),
+            nn.Conv2d(
+                in_channels=32,
                 out_channels=3,
                 kernel_size=(3, 3),
                 stride=(1, 1),

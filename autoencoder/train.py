@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from torchsummary import summary
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
@@ -24,14 +25,16 @@ def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size
     model, epoch = load_model(device, model_path, width, height)
 
     # define the loss function
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
 
     # define the optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
 
     # load the training data images
     train_data = AutoEncoderDataset(training_path, ToTensor())
-    train_data_loader = DataLoader(train_data, batch_size=batch_size)
+    train_data_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+
+    # summary(model, (3, 128, 128))
 
     # train the model
     train_model(model, train_data_loader, criterion, optimizer,

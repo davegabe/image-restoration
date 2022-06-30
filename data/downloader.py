@@ -1,5 +1,6 @@
-from icrawler.builtin import GoogleImageCrawler
 import os
+
+from icrawler.builtin import GoogleImageCrawler
 from PIL import Image
 
 
@@ -71,7 +72,7 @@ def adjustAndCrop(path, width, height):
                 new_img = img.resize(
                     (width, int(img.size[1] * width / img.size[0])), Image.ANTIALIAS)
 
-            new_img = img.crop((0, 0, width, height)) # crop the image to the specified size
+            new_img = new_img.crop((0, 0, width, height)) # crop the image to the specified size
             img.close()
             new_img.save(os.path.join(path, file)) # overwrite the old image
         else:
