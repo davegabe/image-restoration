@@ -61,6 +61,7 @@ class AutoEncoder(nn.Module):
                 padding=(1, 1)
             ),
             nn.ReLU(),
+            # nn.MaxPool2d(2, stride=2),
             nn.Conv2d(
                 in_channels=128,
                 out_channels=256,
@@ -69,8 +70,27 @@ class AutoEncoder(nn.Module):
                 padding=(1, 1)
             ),
             nn.ReLU(),
+            # nn.MaxPool2d(2, stride=2),
+            # nn.Conv2d(
+            #     in_channels=256,
+            #     out_channels=512,
+            #     kernel_size=(3, 3),
+            #     stride=(1, 1),
+            #     padding=(1, 1)
+            # ),
+            # nn.ReLU(),
         )
         self.decoder = nn.Sequential(
+            # nn.Conv2d(
+            #     in_channels=512,
+            #     out_channels=256,
+            #     kernel_size=(3, 3),
+            #     stride=(1, 1),
+            #     padding=(1, 1)
+            # ),
+            # nn.ReLU(),
+            # nn.ConvTranspose2d(256, 256, 3, stride=2,
+            #                    padding=1, output_padding=1),
             nn.Conv2d(
                 in_channels=256,
                 out_channels=128,
@@ -79,7 +99,7 @@ class AutoEncoder(nn.Module):
                 padding=(1, 1)
             ),
             nn.ReLU(),
-            # nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1, output_padding=1),
+            # nn.ConvTranspose2d(128, 128, 3, stride=2, padding=1, output_padding=1),
             nn.Conv2d(
                 in_channels=128,
                 out_channels=64,
@@ -88,6 +108,7 @@ class AutoEncoder(nn.Module):
                 padding=(1, 1)
             ),
             nn.ReLU(),
+            # nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1, output_padding=1),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=32,

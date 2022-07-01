@@ -66,7 +66,7 @@ def test(model_path, evaluation_path, results_path, batch_size: int = 32, device
                 name = str(i) + "_" + str(j)+".jpg"
 
                 plt.savefig(results_path +  name)
-                plt.draw()
+                # plt.draw()
                 plt.clf()
                 plt.close("all")
        
