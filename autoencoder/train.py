@@ -1,3 +1,4 @@
+import os
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -5,11 +6,17 @@ from torchsummary import summary
 from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
+isUsingTPU = False
+if 'COLAB_TPU_ADDR' in os.environ:
+    import torch_xla.core.xla_model as xm
+    isUsingTPU = True
+
+
 from autoencoder.model import (AutoEncoder, AutoEncoderDataset, load_model,
                                save_model)
 
 
-def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32, width: int = 512, height: int = 512):
+def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32, device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     """
     Train the autoencoder.
 
@@ -17,12 +24,8 @@ def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size
         training_path: The path to the training data.
         model_path: The path to save the trained model.
     """
-        
-    # select the device to run the model on
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
     # load the model if it exist, otherwise create a new one
-    model, epoch = load_model(device, model_path, width, height)
+    model, epoch = load_model(device, model_path)
 
     # define the loss function
     criterion = nn.L1Loss()
@@ -75,7 +78,11 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
                 loss = criterion(output_images, original_images)
                 lastLoss = loss.detach().cpu()
                 loss.backward()
-                optimizer.step()
+                if isUsingTPU:
+                    xm.optimizer_step(optimizer)
+                    xm.mark_step()
+                else:
+                    optimizer.step()
 
                 del original_images
                 del corrupted_images

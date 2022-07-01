@@ -11,7 +11,7 @@ from tqdm import tqdm
 from autoencoder.model import AutoEncoderDataset, load_model
 
 
-def test(model_path, evaluation_path, results_path, batch_size: int = 32, width: int = 512, height: int = 512):
+def test(model_path, evaluation_path, results_path, batch_size: int = 32, device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     """
     Use the trained model to restore the image.
 
@@ -20,9 +20,7 @@ def test(model_path, evaluation_path, results_path, batch_size: int = 32, width:
         evaluation_path: The path to the evaluation data.
         results_path: The path to save the restored images.
     """
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    autoencoder, epoch = load_model(device, model_path, width, height)
+    autoencoder, epoch = load_model(device, model_path)
     if epoch == 1:
         sys.exit("Model missing")
     autoencoder.eval()

@@ -28,7 +28,7 @@ class Reshape(nn.Module):
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, width=256, height=256, channels=3):
+    def __init__(self, channels=3):
         super().__init__()
 
         # Number of nodes for internal layers
@@ -36,7 +36,7 @@ class AutoEncoder(nn.Module):
 
         self.encoder = nn.Sequential(
             nn.Conv2d(
-                in_channels=3,
+                in_channels=channels,
                 out_channels=32,
                 kernel_size=(3, 3),
                 stride=(1, 1),
@@ -71,7 +71,6 @@ class AutoEncoder(nn.Module):
             nn.ReLU(),
         )
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(256, 256, 3, stride=2, padding=1, output_padding=1),
             nn.Conv2d(
                 in_channels=256,
                 out_channels=128,
@@ -97,9 +96,10 @@ class AutoEncoder(nn.Module):
                 padding=(1, 1)
             ),
             nn.ReLU(),
+            nn.ConvTranspose2d(32, 32, channels, stride=2, padding=1, output_padding=1),
             nn.Conv2d(
                 in_channels=32,
-                out_channels=3,
+                out_channels=channels,
                 kernel_size=(3, 3),
                 stride=(1, 1),
                 padding=(1, 1)
@@ -151,7 +151,7 @@ class AutoEncoderDataset(torch.utils.data.Dataset):
         return self.transform(original_image), self.transform(corrupted_image)
 
 
-def load_model(device: torch.device, model_path: str, width: int, height: int):
+def load_model(device: torch.device, model_path: str):
     """
     Load the model if it exists, otherwise create a new one.
 
@@ -159,7 +159,7 @@ def load_model(device: torch.device, model_path: str, width: int, height: int):
         device: The device to run the model on.
         model_path: The path to the model.
     """
-    model = AutoEncoder(width, height, 3).to(device)
+    model = AutoEncoder().to(device)
     epoch = 1
     if os.path.exists(model_path) and os.listdir(model_path):
         models = os.listdir(model_path)  # Get the list of models
