@@ -1,8 +1,8 @@
-import numpy as np
+import random
 import cv2 as cv
 import os
 
-def corrupt(training_path, evaluation_path, training_corrupted_path, evaluation_corrupted_path):
+def corrupt(training_path: str, evaluation_path: str, training_corrupted_path: str, evaluation_corrupted_path: str):
     """
     Corrupt training and evaluation data and save it to the specified destinations.
     
@@ -35,16 +35,36 @@ def corrupt(training_path, evaluation_path, training_corrupted_path, evaluation_
 
 
 
-def draw(img):
-    
+def draw(img: cv.Mat, DEBUG=False):
+    """
+        Draws a random line on the image.
+        Args:
+            img: The image to draw the line on.
+            DEBUG: Whether to open the image in a window.
+    """
     x = img.shape[0]
     y = img.shape[1]
-    xlimit = x/3.5
-    ylimit = y/3.5
+    minPoints = 3
+    maxPoints = 10
     
-    for i in range(np.random.randint(3,6)):            
-        
-        upper_edge = np.random.randint(low=(0,0), high=min(x,y))
-        lower_edge = np.random.randint(low=upper_edge+5, high=(upper_edge[0]+5+xlimit,upper_edge[1]+5+ylimit))
-        
-        cv.rectangle(img, upper_edge, lower_edge, color=(0,0,0), thickness = -1 )
+    # list of random points to draw
+    points = [(random.randint(0,x), random.randint(0, y)) for i in range(minPoints, maxPoints)]
+
+    # draw line passing through points
+    for i in range(1, len(points)):
+        cv.line(img, points[i-1], points[i], 0, 4)
+
+    if (DEBUG == True):
+        cv.imshow("img", img)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+
+if __name__ == "__main__":
+    while True:
+        training_path = "./Dataset/Training/Original/"
+        # list files inside training_path
+        training_files = os.listdir(training_path)
+        # imread first file in training_files
+        img = cv.imread(training_path + training_files[random.randint(0, len(training_files)-1)])
+        # draw line passing through points
+        draw(img, DEBUG=True)
