@@ -133,29 +133,28 @@ class AutoEncoderDataset(torch.utils.data.Dataset):
             transform: The transform to apply to the images.
         """
         self.transform = transform
-        self.original_images = []
         self.corrupted_images = []
+        self.original_path = os.path.join(path, 'Original/')
 
         # Get the list of original images
-        original_path = os.path.join(path, 'Original/')
         corrupted_path = os.path.join(path, 'Corrupted/')
-        original_files = os.listdir(original_path)
-        for file in original_files:
-            self.original_images.append(os.path.join(original_path, file))
-            extension = os.path.splitext(file)[1]
-            file_name = os.path.basename(file[:-len(extension)])
-            self.corrupted_images.append(os.path.join(
-                corrupted_path, file_name + "_corrupted" + extension))
+        corrupted_files = os.listdir(corrupted_path)
+        self.corrupted_images = [os.path.join(corrupted_path, file) for file in corrupted_files]
 
     def __len__(self):
-        return len(self.original_images)
+        return len(self.corrupted_images)
 
     def __getitem__(self, index):
-        # load the original image
-        original_image = Image.open(self.original_images[index]).convert('RGB')
         # load the corrupted image
-        corrupted_image = Image.open(
-            self.corrupted_images[index]).convert('RGB')
+        corrupted_image = Image.open(self.corrupted_images[index]).convert('RGB')
+        # get file extension
+        file_extension = os.path.splitext(self.corrupted_images[index])[1]
+        # get basename of the file
+        file_name = os.path.basename(self.corrupted_images[index])
+        # get the original image file
+        original_image_file = self.original_path + file_name.split('_corrupted')[0] + file_extension
+        # load the original image
+        original_image = Image.open(original_image_file).convert('RGB')
         return self.transform(original_image), self.transform(corrupted_image)
 
 
@@ -173,7 +172,7 @@ def load_model(device: torch.device, model_path: str, forTraining: bool = True):
     epoch = 1
     if os.path.exists(model_path) and os.listdir(model_path):
         models = os.listdir(model_path)  # Get the list of models
-        models = [model for model in models if model.endswith('.pth')] # Filter only .pth files
+        models = [model for model in models if model.endswith('.pth')]  # Filter only .pth files
         models.sort(key=lambda x: int(
             x.split('_')[1].split('.')[0]))  # Sort by epoch
         last_model = os.path.join(model_path, models[-1])  # Get the last model
