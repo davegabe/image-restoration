@@ -1,3 +1,5 @@
+from autoencoder.model import (AutoEncoder, AutoEncoderDataset, load_model,
+                               save_model)
 import os
 import torch
 from torch import nn
@@ -12,10 +14,6 @@ if 'COLAB_TPU_ADDR' in os.environ:
     isUsingTPU = True
 
 
-from autoencoder.model import (AutoEncoder, AutoEncoderDataset, load_model,
-                               save_model)
-
-
 def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size: int = 32, device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     """
     Train the autoencoder.
@@ -25,17 +23,13 @@ def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size
         model_path: The path to save the trained model.
     """
     # load the model if it exist, otherwise create a new one
-    model, epoch = load_model(device, model_path)
-
-    # define the loss function
-    criterion = nn.L1Loss()
-
-    # define the optimizer
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
+    model, optimizer, criterion, epoch = load_model(
+        device, model_path, forTraining=True)
 
     # load the training data images
     train_data = AutoEncoderDataset(training_path, ToTensor())
-    train_data_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    train_data_loader = DataLoader(
+        train_data, batch_size=batch_size, shuffle=True)
 
     # summary(model, (3, 128, 128))
 
@@ -43,7 +37,8 @@ def train(training_path: str, model_path: str, epochs_save: int = 10, batch_size
     train_model(model, train_data_loader, criterion, optimizer,
                 epoch, epochs_save, model_path, device)
 
-def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn.MSELoss, optimizer: torch.optim.AdamW, epoch: int, epochs_save: int, model_path: str, device: torch.device):
+
+def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn.L1Loss, optimizer: torch.optim.AdamW, epoch: int, epochs_save: int, model_path: str, device: torch.device):
     """
     Train the model.
 
@@ -65,12 +60,12 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
                 description = f"Epoch {epoch} | Loss {lastLoss}"
             else:
                 description = f"Epoch {epoch}"
-                
+
             for i, (original_images, corrupted_images) in enumerate(tqdm(train_data_loader, desc=description)):
                 # send the images to the device
                 original_images: torch.Tensor = original_images.to(device)
                 corrupted_images: torch.Tensor = corrupted_images.to(device)
-                
+
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
@@ -92,8 +87,14 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
 
             # save the model every epochs_save times
             if(epoch % epochs_save == 0):
-                saved_model = save_model(model, epoch, model_path)
-                print(f"[SAVED MODEL] Epoch: {epoch} | Saved to {saved_model}!")
+                saved_model = save_model(
+                    model, criterion, optimizer, epoch, model_path)
+                print(
+                    f"[SAVED MODEL] Epoch: {epoch} | Saved to {saved_model}!")
+
+                # if it's using TPU, save a copy of the model for inference on CPU/GPU
+                if isUsingTPU:
+                    xm.save(model_path + "lastTPUModel.xla")
             epoch += 1
 
     except KeyboardInterrupt:
@@ -101,15 +102,15 @@ def train_model(model: AutoEncoder, train_data_loader: DataLoader, criterion: nn
         del corrupted_images
         del output_images
         del loss
-        torch.cuda.empty_cache() # clear the cache
+        torch.cuda.empty_cache()  # clear the cache
         print("[STOPPED] Training interrupted!")
         return
-    
+
     except Exception as e:
         # del original_images
         # del corrupted_images
         # del output_images
         # del loss
-        torch.cuda.empty_cache() # clear the cache
+        torch.cuda.empty_cache()  # clear the cache
         print(f"[ERROR] {e}")
         return

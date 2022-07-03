@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import torch
 from PIL import Image
 from torch import nn
@@ -18,21 +17,9 @@ class PrintLayer(nn.Module):
         return x
 
 
-class Reshape(nn.Module):
-    def __init__(self, *args):
-        super(Reshape, self).__init__()
-        self.shape = args
-
-    def forward(self, x):
-        return x.view(self.shape)
-
-
 class AutoEncoder(nn.Module):
-    def __init__(self, channels=3):
+    def __init__(self, channels: int = 3):
         super().__init__()
-
-        # Number of nodes for internal layers
-        nodes = np.linspace(1, 10, num=10)
 
         self.encoder = nn.Sequential(
             nn.Conv2d(
@@ -172,7 +159,7 @@ class AutoEncoderDataset(torch.utils.data.Dataset):
         return self.transform(original_image), self.transform(corrupted_image)
 
 
-def load_model(device: torch.device, model_path: str):
+def load_model(device: torch.device, model_path: str, forTraining: bool = True):
     """
     Load the model if it exists, otherwise create a new one.
 
@@ -181,30 +168,46 @@ def load_model(device: torch.device, model_path: str):
         model_path: The path to the model.
     """
     model = AutoEncoder().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.L1Loss()
     epoch = 1
     if os.path.exists(model_path) and os.listdir(model_path):
         models = os.listdir(model_path)  # Get the list of models
+        models = [model for model in models if model.endswith('.pth')] # Filter only .pth files
         models.sort(key=lambda x: int(
             x.split('_')[1].split('.')[0]))  # Sort by epoch
         last_model = os.path.join(model_path, models[-1])  # Get the last model
-        model.load_state_dict(torch.load(last_model))  # Load the last model
-        epoch = int(last_model.split('_')[1].split(
-            '.')[0]) + 1  # Get the epoch
-    return model, epoch
+
+        # Load the last model
+        checkpoint = torch.load(last_model)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+        criterion = checkpoint['loss']
+        if (forTraining):
+            model.train()
+        else:
+            model.eval()
+    return model, optimizer, criterion, epoch
 
 
-def save_model(model, epoch: int, model_path: str):
+def save_model(model: AutoEncoder, criterion: nn.L1Loss, optimizer: torch.optim.AdamW, epoch: int, model_path: str):
     """
-    Save the model.
+    Save the model for inference and training.
 
     Args:
         model: The model to save.
         epoch: The epoch of the model.
         model_path: The path to the model.
     """
-    os.makedirs(
-        model_path, exist_ok=True)  # Create the model directory if it doesn't exist
+    os.makedirs(model_path, exist_ok=True)  # Create the model directory if it doesn't exist
     # The path to the model
     model_save = os.path.join(model_path, f"model_{epoch}.pth")
-    torch.save(model.state_dict(), model_save)  # Save the model
+    # Save the model
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'loss': criterion
+    }, model_save)
     return model_save

@@ -4,7 +4,7 @@ from icrawler.builtin import GoogleImageCrawler
 from PIL import Image
 
 
-def download(training_path, evaluation_path, width, height, keyword, quantity):
+def download(training_path: str, evaluation_path: str, width: int, height: int, keyword: str, quantity: int):
     """
     Downloads training data from the internet and saves it to the specified destination, separated into training and evaluation data.
 
@@ -25,7 +25,7 @@ def download(training_path, evaluation_path, width, height, keyword, quantity):
     splitData(training_path, evaluation_path)
 
 
-def adjustAndCrop(path, width, height):
+def adjustAndCrop(path: str, width: int, height: int):
     """
     Adjusts and crops images to the specified size.
 
@@ -81,9 +81,12 @@ def adjustAndCrop(path, width, height):
             os.remove(os.path.join(path, file))
 
 
-def splitData(training_path, evaluation_path):
+def splitData(training_path: str, evaluation_path: str):
     """
-    Splits the downloaded data into training and evaluation data.
+        Splits the downloaded data into training and evaluation data.
+        Args:
+            training_path: The path to the training data.
+            evaluation_path: The path to the evaluation data.
     """
     files = os.listdir(training_path)
 
