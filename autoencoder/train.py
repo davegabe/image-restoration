@@ -168,8 +168,8 @@ def train_n_test(training_path: str, evaluation_path: str, model_path: str, epoc
 
                 output_images = model.forward(corrupted_images)
                 loss = criterion(output_images, original_images)
-                loss_avg += loss.detach().cpu()
-                lastLoss = loss.detach().cpu()
+                loss_avg += loss.detach().cpu().item()
+                lastLoss = loss.detach().cpu().item()
                 loss.backward()
                 optimizer.step()
 
@@ -200,7 +200,7 @@ def train_n_test(training_path: str, evaluation_path: str, model_path: str, epoc
                     # reconstruction error
                     loss = criterion(output_images, original_images)
 
-                    loss_avg += loss.detach().cpu()
+                    loss_avg += loss.detach().cpu().item()
 
                     del original_images
                     del corrupted_images
@@ -226,6 +226,9 @@ def train_n_test(training_path: str, evaluation_path: str, model_path: str, epoc
                 plt.ylim(0, 1)
                 plt.xlim(0, epoch)
                 plt.legend()
+                plt.gcf().set_facecolor('white')
+                # save the plot
+                plt.savefig(model_path + f"lossPerEpochTrain-{epoch}.png")
                 plt.show()
 
                 # plot lossPerEpochTrainLast and lossPerEpochTest as a function of epoch
@@ -236,7 +239,21 @@ def train_n_test(training_path: str, evaluation_path: str, model_path: str, epoc
                 plt.ylim(0, 1)
                 plt.xlim(0, epoch)
                 plt.legend()
+                plt.gcf().set_facecolor('white')
+                # save the plot
+                plt.savefig(model_path + f"lossPerEpochTrainLast-{epoch}.png")
                 plt.show()
+
+                
+                # save data from array lossPerEpochTrain to file
+                with open(model_path + f"lossPerEpochTrain-{epoch}.txt", "w") as f:
+                    f.write("[" + ", ".join(str(x) for x in lossPerEpochTrain) + "]")
+                # save data from array lossPerEpochTest to file
+                with open(model_path + f"lossPerEpochTest-{epoch}.txt", "w") as f:
+                    f.write("[" + ", ".join(str(x) for x in lossPerEpochTrain) + "]")
+                # save data from array lossPerEpochTrainLast to file
+                with open(model_path + f"lossPerEpochTrainLast-{epoch}.txt", "w") as f:
+                    f.write("[" + ", ".join(str(x) for x in lossPerEpochTrain) + "]")
             epoch += 1
 
     except KeyboardInterrupt:
