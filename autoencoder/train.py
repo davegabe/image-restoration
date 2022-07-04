@@ -1,3 +1,4 @@
+from math import ceil
 from autoencoder.model import (AutoEncoder, AutoEncoderDataset, load_model,
                                save_model)
 import os
@@ -147,6 +148,7 @@ def train_n_test(training_path: str, evaluation_path: str, model_path: str, epoc
     lossPerEpochTrain = [] # list of avg loss per epoch for training
     lossPerEpochTrainLast = [] # last loss of the last epoch for training
     lossPerEpochTest = [] # list of avg loss per epoch for testing
+    
     try:
         while True:
             if len(lossPerEpochTrain) > 0:
@@ -223,7 +225,10 @@ def train_n_test(training_path: str, evaluation_path: str, model_path: str, epoc
                 plt.plot(lossPerEpochTest, label="Train epoch")
                 plt.xlabel("Epoch")
                 plt.ylabel("Loss")
-                plt.ylim(0, 1)
+                maxValue = max(max(lossPerEpochTrain), max(lossPerEpochTest))
+                # round to first decimal up
+                maxValue = ceil(maxValue * 10) / 10
+                plt.ylim(0, maxValue)
                 plt.xlim(0, epoch)
                 plt.legend()
                 plt.gcf().set_facecolor('white')
@@ -236,7 +241,10 @@ def train_n_test(training_path: str, evaluation_path: str, model_path: str, epoc
                 plt.plot(lossPerEpochTest, label="Train epoch")
                 plt.xlabel("Epoch")
                 plt.ylabel("Loss")
-                plt.ylim(0, 1)
+                maxValue = max(max(lossPerEpochTrain), max(lossPerEpochTest))
+                # round to first decimal up
+                maxValue = ceil(maxValue * 10) / 10
+                plt.ylim(0, maxValue)
                 plt.xlim(0, epoch)
                 plt.legend()
                 plt.gcf().set_facecolor('white')
