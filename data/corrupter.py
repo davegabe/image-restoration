@@ -38,21 +38,41 @@ def corrupt(training_path: str, evaluation_path: str, training_corrupted_path: s
             cv.imwrite(final_path, img)
 
 
-def drawCurve(img: cv.Mat, start_point: tuple):
+def drawLine(img: cv.Mat, randomTickness: bool = True):
+    """
+        Draws a line on the image starting from one point and moving to near points on the image.
+
+        Args:
+            img: The image to draw the curve on.
+            start_point: The point to start the curve from.
+    """
+    x = img.shape[0]
+    y = img.shape[1]
+    thicknessMult = (random.randint(15, 65) if randomTickness else 35)/1000
+    thickness = int(thicknessMult * min(x, y))
+    points = [(random.randint(0, x), random.randint(0, y)) for i in range(random.randint(3, 5))]
+
+    # draw line passing through points
+    for i in range(1, len(points)):
+        cv.line(img, points[i-1], points[i], 0, thickness)
+
+
+def drawCurve(img: cv.Mat, start_point: tuple, randomTickness: bool = True):
     """
         Draws a curve on the image starting from one point and moving to near points on the image.
 
         Args:
             img: The image to draw the curve on.
-            DEBUG: Whether or not to print debug messages.
+            start_point: The point to start the curve from.
     """
     x = img.shape[0]
     y = img.shape[1]
-    thickness = int(0.035 * min(x, y))
+    thicknessMult = (random.randint(15, 65) if randomTickness else 35)/1000
+    thickness = int(thicknessMult * min(x, y))
     points = [start_point]
     minPoints = 20
     maxPoints = 50
-
+    
     # random direction tuple in [-1, 1]
     direction = ((random.random()-0.5)*2, (random.random()-0.5)*2)
     # list of random points to draw
@@ -94,7 +114,13 @@ def draw(img: cv.Mat, DEBUG=False):
 
     # draw random number of curves
     for i in range(random.randint(minCurves, maxCurves)):
-        drawCurve(img, (random.randint(0, x), random.randint(0, y)))
+        # 30% chance to draw a line, 70% chance to draw a curve
+        if random.random() < 0.3:
+            # draw a line
+            start_point = (random.randint(0, x-1), random.randint(0, y-1))
+            drawLine(img, start_point)
+        else:
+            drawCurve(img, (random.randint(0, x), random.randint(0, y)))
 
     if (DEBUG == True):
         cv.imshow("img", img)
