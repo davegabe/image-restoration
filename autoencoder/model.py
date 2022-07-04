@@ -169,7 +169,7 @@ def load_model(device: torch.device, model_path: str, forTraining: bool = True):
     model = AutoEncoder().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = nn.L1Loss()
-    epoch = 1
+    epoch = 0
     if os.path.exists(model_path) and os.listdir(model_path):
         models = os.listdir(model_path)  # Get the list of models
         models = [model for model in models if model.endswith('.pth')]  # Filter only .pth files
@@ -187,7 +187,7 @@ def load_model(device: torch.device, model_path: str, forTraining: bool = True):
             model.train()
         else:
             model.eval()
-    return model, optimizer, criterion, epoch
+    return model, optimizer, criterion, epoch+1
 
 
 def save_model(model: AutoEncoder, criterion: nn.L1Loss, optimizer: torch.optim.AdamW, epoch: int, model_path: str):
